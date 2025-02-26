@@ -10,26 +10,29 @@ import AVFoundation
 
 class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
+    //MARK: - Properties & Variable
     var captureSession: AVCaptureSession!
     var previewLayer: AVCaptureVideoPreviewLayer!
     var videoOutput: AVCaptureVideoDataOutput!
     var detectionLayer: UIImageView!
-
+    
+    //MARK: - Life Cycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
         setupDetectionLayer()
     }
     
+    //MARK: - Function
     func setupCamera() {
         captureSession = AVCaptureSession()
         captureSession.sessionPreset = .high
-
+        
         guard let backCamera = AVCaptureDevice.default(for: .video) else {
             print("No video camera available")
             return
         }
-
+        
         do {
             let input = try AVCaptureDeviceInput(device: backCamera)
             captureSession.addInput(input)
@@ -37,16 +40,16 @@ class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
             print("Error setting up camera input: \(error)")
             return
         }
-
+        
         videoOutput = AVCaptureVideoDataOutput()
         videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
         captureSession.addOutput(videoOutput)
-
+        
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer.videoGravity = .resizeAspectFill
         previewLayer.frame = view.layer.bounds
         view.layer.addSublayer(previewLayer)
-
+        
         DispatchQueue.global(qos: .userInitiated).async {
             self.captureSession.startRunning()
         }
@@ -64,7 +67,7 @@ class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
             print("[Camera] Error: Failed to get image buffer.")
             return
         }
-
+        
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
         let context = CIContext()
         
@@ -72,10 +75,10 @@ class MainVC: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
             print("[Camera] Error: Failed to create CGImage from CIImage.")
             return
         }
-
+        
         let uiImage = UIImage(cgImage: cgImage)
         let originalSize = CGSize(width: CVPixelBufferGetWidth(pixelBuffer), height: CVPixelBufferGetHeight(pixelBuffer))
-
+        
         DispatchQueue.global(qos: .userInteractive).async {
             if let processedImage = OpenCVWrapper.detectGreenObjects(uiImage, originalSize: originalSize) {
                 DispatchQueue.main.async {
